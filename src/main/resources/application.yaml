@@ -1,15 +1,29 @@
+server:
+  port: 8082
+
 spring:
   application:
     name: ms-plazoleta
 
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:mysql://localhost:3308/pragma_plazoleta
+    username: plazoleta_app
+    password: password_local
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: create-drop
-    show-sql: false
+      ddl-auto: none
+    show-sql: true
+
+app:
+  description: "Pragma Powerup - Microservicio plazoleta"
+  version: "1.0.0"
+
+  security:
+    jwt:
+      secret: ${JWT_SECRET:bfSPR28aJsO+O+CMmiGb7FFpBeYwnPuMbqHZVxqw7X0=}
+
+microservices:
+  usuarios:
+    url: http://localhost:8081
