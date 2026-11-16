@@ -80,9 +80,9 @@ public class ControllerAdvisor {
         );
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalArgumentException(
-            IllegalArgumentException exception) {
+    @ExceptionHandler(InvalidPaginationException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidPaginationException(
+            InvalidPaginationException exception) {
         return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 
@@ -99,5 +99,11 @@ public class ControllerAdvisor {
             HttpStatus status, String message) {
         return ResponseEntity.status(status)
                 .body(Collections.singletonMap(MESSAGE, message));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalArgumentException(
+            IllegalArgumentException exception) {
+        return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 }

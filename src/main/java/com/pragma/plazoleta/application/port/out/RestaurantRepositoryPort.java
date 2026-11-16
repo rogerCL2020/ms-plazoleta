@@ -14,5 +14,6 @@ public interface RestaurantRepositoryPort {
 
     Optional<Restaurant> findById(Long id);
 
+    PageResult<Restaurant> findAll(int page, int size);
 
 }
