@@ -3,10 +3,14 @@ package com.pragma.plazoleta.infrastructure.output.persistence.adapter;
 
 import com.pragma.plazoleta.application.port.out.DishRepositoryPort;
 import com.pragma.plazoleta.domain.model.Dish;
+import com.pragma.plazoleta.domain.model.PageResult;
 import com.pragma.plazoleta.infrastructure.output.persistence.entity.DishEntity;
 import com.pragma.plazoleta.infrastructure.output.persistence.mapper.DishEntityMapper;
 import com.pragma.plazoleta.infrastructure.output.persistence.repository.DishJpaRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -37,5 +41,29 @@ public class DishJpaAdapter implements DishRepositoryPort {
                 .map(dishEntityMapper::toDomain);
     }
 
+    @Override
+    public PageResult<Dish> findByRestaurant(
+            Long restaurantId,
+            Long categoryId,
+            int page,
+            int size) {
 
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<DishEntity> result = dishRepository.findByRestaurant(
+                restaurantId,
+                categoryId,
+                pageable
+        );
+
+        return new PageResult<>(
+                result.getContent().stream()
+                        .map(dishEntityMapper::toDomain)
+                        .toList(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
+    }
 }

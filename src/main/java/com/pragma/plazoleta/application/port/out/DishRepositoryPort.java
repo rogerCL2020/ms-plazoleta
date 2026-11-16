@@ -14,4 +14,11 @@ public interface DishRepositoryPort {
 
     Optional<Dish> findById(Long id);
 
+    PageResult<Dish> findByRestaurant(
+            Long restaurantId,
+            Long categoryId,
+            int page,
+            int size
+    );
+
 }
