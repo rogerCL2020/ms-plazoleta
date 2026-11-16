@@ -10,7 +10,8 @@ public interface DishRepositoryPort {
 
     Dish save(Dish dish);
 
-
-
     boolean existsByNameAndCategoryIdAndRestaurantId(String name, Long categoryId, Long restaurantId);
+
+    Optional<Dish> findById(Long id);
+
 }

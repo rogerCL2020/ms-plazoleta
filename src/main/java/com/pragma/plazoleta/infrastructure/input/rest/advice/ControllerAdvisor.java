@@ -33,7 +33,7 @@ public class ControllerAdvisor {
         return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 
-    @ExceptionHandler({RestaurantNotFoundException.class, CategoryNotFoundException.class})
+    @ExceptionHandler({RestaurantNotFoundException.class, CategoryNotFoundException.class,DishNotFoundException.class})
     public ResponseEntity<Map<String, String>> handleNotFoundException(
             RuntimeException exception) {
         return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());

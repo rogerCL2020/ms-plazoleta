@@ -9,6 +9,8 @@ import com.pragma.plazoleta.infrastructure.output.persistence.repository.DishJpa
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 @Component
 @RequiredArgsConstructor
 public class DishJpaAdapter implements DishRepositoryPort {
@@ -28,5 +30,12 @@ public class DishJpaAdapter implements DishRepositoryPort {
     public boolean existsByNameAndCategoryIdAndRestaurantId(String name, Long categoryId, Long restaurantId) {
         return dishRepository.existsByNameAndCategoryIdAndRestaurantId(name, categoryId, restaurantId);
     }
+
+    @Override
+    public Optional<Dish> findById(Long id) {
+        return dishRepository.findById(id)
+                .map(dishEntityMapper::toDomain);
+    }
+
 
 }
