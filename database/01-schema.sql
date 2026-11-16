@@ -157,3 +157,20 @@ CREATE INDEX idx_pedidos_restaurante
 
 CREATE INDEX idx_pedidos_fecha
     ON pedidos(fecha);
+
+ALTER TABLE categoria
+    ADD CONSTRAINT uk_categoria_nombre UNIQUE (nombre);
+
+ALTER TABLE plato
+    ADD CONSTRAINT uk_plato_nombre_categoria_restaurante
+        UNIQUE (nombre, id_categoria, id_restaurante);
+
+INSERT INTO categoria (nombre, descripcion)
+VALUES
+    ('Entradas', 'Platos ligeros que se sirven antes del plato principal'),
+    ('Platos principales', 'Platos principales de la carta'),
+    ('Postres', 'Preparaciones dulces que se sirven como postre'),
+    ('Bebidas', 'Bebidas frías y calientes'),
+    ('Ensaladas', 'Preparaciones a base de vegetales y otros ingredientes'),
+    ('Sopas', 'Preparaciones líquidas calientes o frías'),
+    ('Guarniciones', 'Acompañamientos para platos principales');

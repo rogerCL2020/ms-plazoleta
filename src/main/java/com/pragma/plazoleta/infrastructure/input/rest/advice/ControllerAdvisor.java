@@ -1,9 +1,7 @@
 
 package com.pragma.plazoleta.infrastructure.input.rest.advice;
 
-import com.pragma.plazoleta.domain.exception.InvalidOwnerException;
-import com.pragma.plazoleta.domain.exception.RestaurantAlreadyExistsException;
-import com.pragma.plazoleta.domain.exception.UserServiceUnavailableException;
+import com.pragma.plazoleta.domain.exception.*;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,9 +21,9 @@ public class ControllerAdvisor {
     private static final String MESSAGE = "message";
 
 
-    @ExceptionHandler(RestaurantAlreadyExistsException.class)
-    public ResponseEntity<Map<String, String>> handleRestaurantAlreadyExistsException(
-            RestaurantAlreadyExistsException exception) {
+    @ExceptionHandler({RestaurantAlreadyExistsException.class, DishAlreadyExistsException.class})
+    public ResponseEntity<Map<String, String>> handleAlreadyExistsException(
+            RuntimeException exception) {
         return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
     }
 
@@ -35,7 +33,17 @@ public class ControllerAdvisor {
         return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 
+    @ExceptionHandler({RestaurantNotFoundException.class, CategoryNotFoundException.class})
+    public ResponseEntity<Map<String, String>> handleNotFoundException(
+            RuntimeException exception) {
+        return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
 
+    @ExceptionHandler(UnauthorizedRestaurantAccessException.class)
+    public ResponseEntity<Map<String, String>> handleUnauthorizedRestaurantAccessException(
+            UnauthorizedRestaurantAccessException exception) {
+        return buildResponse(HttpStatus.FORBIDDEN, exception.getMessage());
+    }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, String>> handleAccessDeniedException(
