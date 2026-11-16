@@ -1,6 +1,7 @@
 
 package com.pragma.plazoleta.application.service;
 
+import com.pragma.plazoleta.application.dto.result.CreateEmployeeResult;
 import com.pragma.plazoleta.application.port.in.CreateEmployeeUseCase;
 import com.pragma.plazoleta.application.port.out.EmployeeServicePort;
 import com.pragma.plazoleta.application.port.out.RestaurantEmployeeRepositoryPort;
@@ -28,7 +29,7 @@ public class EmployeeService implements CreateEmployeeUseCase {
 
     @Override
     @Transactional
-    public Employee create(
+    public CreateEmployeeResult create(
             Employee employee,
             String password,
             Long ownerId,
@@ -91,7 +92,7 @@ public class EmployeeService implements CreateEmployeeUseCase {
 
             restaurantEmployeeRepositoryPort.save(association);
 
-            return createdEmployee;
+            return  new CreateEmployeeResult(createdEmployee, restaurant);
 
         } catch (RuntimeException exception) {
 
