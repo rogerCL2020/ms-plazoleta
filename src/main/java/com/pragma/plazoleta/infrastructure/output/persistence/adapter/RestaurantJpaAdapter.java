@@ -31,4 +31,10 @@ public class RestaurantJpaAdapter implements RestaurantRepositoryPort {
         return restaurantEntityMapper.toDomain(saved);
     }
 
+    @Override
+    public Optional<Restaurant> findById(Long id) {
+        return restaurantRepository.findById(id)
+                .map(restaurantEntityMapper::toDomain);
+    }
+
 }
