@@ -1,11 +1,10 @@
 
-package com.pragma.plazoleta.infrastructure.input.rest;
+package com.pragma.plazoleta.infrastructure.input.rest.controller;
 
 
 import com.pragma.plazoleta.application.dto.request.CreateRestaurantRequest;
 import com.pragma.plazoleta.application.dto.response.RestaurantResponse;
 import com.pragma.plazoleta.application.port.in.CreateRestaurantUseCase;
-import com.pragma.plazoleta.domain.model.PageResult;
 import com.pragma.plazoleta.domain.model.Restaurant;
 
 import jakarta.validation.Valid;
@@ -14,8 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/restaurant")
