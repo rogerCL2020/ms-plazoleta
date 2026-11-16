@@ -4,9 +4,11 @@ package com.pragma.plazoleta.infrastructure.input.rest.controller;
 import com.pragma.plazoleta.application.dto.request.ChangeDishStatusRequest;
 import com.pragma.plazoleta.application.dto.request.CreateDishRequest;
 import com.pragma.plazoleta.application.dto.request.UpdateDishRequest;
+import com.pragma.plazoleta.application.dto.response.DishListResponse;
 import com.pragma.plazoleta.application.dto.response.DishResponse;
 import com.pragma.plazoleta.application.port.in.ChangeDishStatusUseCase;
 import com.pragma.plazoleta.application.port.in.CreateDishUseCase;
+import com.pragma.plazoleta.application.port.in.ListDishesUseCase;
 import com.pragma.plazoleta.application.port.in.UpdateDishUseCase;
 import com.pragma.plazoleta.domain.model.Dish;
 import com.pragma.plazoleta.domain.model.PageResult;
@@ -31,6 +33,7 @@ public class DishController {
     private final AuthenticatedUserProvider authenticatedUserProvider;
     private final UpdateDishUseCase updateDishUseCase;
     private final ChangeDishStatusUseCase changeDishStatusUseCase;
+    private final ListDishesUseCase listDishesUseCase;
 
     @PostMapping
     @PreAuthorize("hasRole('PROPIETARIO')")
@@ -84,6 +87,46 @@ public class DishController {
         return ResponseEntity.ok(toResponse(updated));
     }
 
+    @GetMapping("/restaurant/{restaurantId}")
+    @PreAuthorize("hasRole('CLIENTE')")
+    public ResponseEntity<PageResult<DishListResponse>> listByRestaurant(
+            @PathVariable Long restaurantId,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        PageResult<Dish> result = listDishesUseCase.listByRestaurant(
+                restaurantId,
+                categoryId,
+                page,
+                size
+        );
+
+        List<DishListResponse> content = result.getContent()
+                .stream()
+                .map(this::toListResponse)
+                .toList();
+
+        PageResult<DishListResponse> response = new PageResult<>(
+                content,
+                result.getPage(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    private DishListResponse toListResponse(Dish dish) {
+        return new DishListResponse(
+                dish.getId(),
+                dish.getName(),
+                dish.getDescription(),
+                dish.getPrice(),
+                dish.getImageUrl()
+        );
+    }
 
     private Dish toDomain(CreateDishRequest request) {
         return new Dish(
