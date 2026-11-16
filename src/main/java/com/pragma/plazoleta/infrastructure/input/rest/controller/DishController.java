@@ -1,9 +1,11 @@
 
 package com.pragma.plazoleta.infrastructure.input.rest.controller;
 
+import com.pragma.plazoleta.application.dto.request.ChangeDishStatusRequest;
 import com.pragma.plazoleta.application.dto.request.CreateDishRequest;
 import com.pragma.plazoleta.application.dto.request.UpdateDishRequest;
 import com.pragma.plazoleta.application.dto.response.DishResponse;
+import com.pragma.plazoleta.application.port.in.ChangeDishStatusUseCase;
 import com.pragma.plazoleta.application.port.in.CreateDishUseCase;
 import com.pragma.plazoleta.application.port.in.UpdateDishUseCase;
 import com.pragma.plazoleta.domain.model.Dish;
@@ -28,6 +30,7 @@ public class DishController {
     private final CreateDishUseCase createDishUseCase;
     private final AuthenticatedUserProvider authenticatedUserProvider;
     private final UpdateDishUseCase updateDishUseCase;
+    private final ChangeDishStatusUseCase changeDishStatusUseCase;
 
     @PostMapping
     @PreAuthorize("hasRole('PROPIETARIO')")
@@ -63,6 +66,23 @@ public class DishController {
         return ResponseEntity.ok(toResponse(updated));
     }
 
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('PROPIETARIO')")
+    public ResponseEntity<DishResponse> changeStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody ChangeDishStatusRequest request) {
+
+        AuthenticatedUser user = authenticatedUserProvider.getCurrentUser();
+
+        Dish updated = changeDishStatusUseCase.changeStatus(
+                id,
+                request.getActive(),
+                user.userId()
+        );
+
+        return ResponseEntity.ok(toResponse(updated));
+    }
 
 
     private Dish toDomain(CreateDishRequest request) {

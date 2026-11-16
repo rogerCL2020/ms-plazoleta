@@ -1,5 +1,6 @@
 package com.pragma.plazoleta.application.service;
 
+import com.pragma.plazoleta.application.port.in.ChangeDishStatusUseCase;
 import com.pragma.plazoleta.application.port.in.CreateDishUseCase;
 import com.pragma.plazoleta.application.port.in.UpdateDishUseCase;
 import com.pragma.plazoleta.application.port.out.CategoryRepositoryPort;
@@ -19,7 +20,7 @@ import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
-public class DishService implements CreateDishUseCase, UpdateDishUseCase {
+public class DishService implements CreateDishUseCase, UpdateDishUseCase, ChangeDishStatusUseCase {
 
     private final DishRepositoryPort dishRepositoryPort;
     private final RestaurantRepositoryPort restaurantRepositoryPort;
@@ -76,5 +77,24 @@ public class DishService implements CreateDishUseCase, UpdateDishUseCase {
         return dishRepositoryPort.save(dish);
     }
 
+
+    @Override
+    public Dish changeStatus(Long dishId, Boolean active, Long ownerId) {
+
+        Dish dish = dishRepositoryPort.findById(dishId)
+                .orElseThrow(DishNotFoundException::new);
+
+        Restaurant restaurant = restaurantRepositoryPort
+                .findById(dish.getRestaurantId())
+                .orElseThrow(RestaurantNotFoundException::new);
+
+        if (!Objects.equals(restaurant.getOwnerId(), ownerId)) {
+            throw new UnauthorizedRestaurantAccessException();
+        }
+
+        dish.setActive(active);
+
+        return dishRepositoryPort.save(dish);
+    }
 
 }
