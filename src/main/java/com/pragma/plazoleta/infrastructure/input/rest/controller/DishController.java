@@ -2,8 +2,10 @@
 package com.pragma.plazoleta.infrastructure.input.rest.controller;
 
 import com.pragma.plazoleta.application.dto.request.CreateDishRequest;
+import com.pragma.plazoleta.application.dto.request.UpdateDishRequest;
 import com.pragma.plazoleta.application.dto.response.DishResponse;
 import com.pragma.plazoleta.application.port.in.CreateDishUseCase;
+import com.pragma.plazoleta.application.port.in.UpdateDishUseCase;
 import com.pragma.plazoleta.domain.model.Dish;
 import com.pragma.plazoleta.domain.model.PageResult;
 
@@ -19,12 +21,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/dish")
+@RequestMapping("/api/v1/dish")
 @RequiredArgsConstructor
 public class DishController {
 
     private final CreateDishUseCase createDishUseCase;
     private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final UpdateDishUseCase updateDishUseCase;
 
     @PostMapping
     @PreAuthorize("hasRole('PROPIETARIO')")
@@ -40,6 +43,24 @@ public class DishController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(toResponse(created));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('PROPIETARIO')")
+    public ResponseEntity<DishResponse> update(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateDishRequest request) {
+
+        AuthenticatedUser user = authenticatedUserProvider.getCurrentUser();
+
+        Dish updated = updateDishUseCase.update(
+                id,
+                request.getPrice(),
+                request.getDescription(),
+                user.userId()
+        );
+
+        return ResponseEntity.ok(toResponse(updated));
     }
 
 
