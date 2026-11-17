@@ -9,11 +9,13 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @ControllerAdvice
 public class ControllerAdvisor {
@@ -43,6 +45,18 @@ public class ControllerAdvisor {
     public ResponseEntity<Map<String, String>> handleUnauthorizedRestaurantAccessException(
             UnauthorizedRestaurantAccessException exception) {
         return buildResponse(HttpStatus.FORBIDDEN, exception.getMessage());
+    }
+
+    @ExceptionHandler(ActiveOrderAlreadyExistsException.class)
+    public ResponseEntity<Map<String, String>> handleActiveOrderAlreadyExistsException(
+            ActiveOrderAlreadyExistsException exception) {
+        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    @ExceptionHandler(InvalidOrderDishException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidOrderDishException(
+            InvalidOrderDishException exception) {
+        return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -95,10 +109,18 @@ public class ControllerAdvisor {
                 .body(Map.of("message", exception.getMessage()));
     }
 
-    private ResponseEntity<Map<String, String>> buildResponse(
-            HttpStatus status, String message) {
-        return ResponseEntity.status(status)
-                .body(Collections.singletonMap(MESSAGE, message));
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleValidationException(
+            MethodArgumentNotValidException exception) {
+
+        String errorMessage = exception.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(error -> error.getDefaultMessage())
+                .collect(Collectors.joining(", "));
+
+        return buildResponse(HttpStatus.BAD_REQUEST, errorMessage);
+
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -106,4 +128,12 @@ public class ControllerAdvisor {
             IllegalArgumentException exception) {
         return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
+
+    private ResponseEntity<Map<String, String>> buildResponse(
+            HttpStatus status, String message) {
+        return ResponseEntity.status(status)
+                .body(Collections.singletonMap(MESSAGE, message));
+    }
+
+
 }
