@@ -14,6 +14,8 @@ import feign.RetryableException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 import static com.pragma.plazoleta.domain.model.enums.RoleEnum.OWNER_ROLE;
 
 @Component
@@ -26,7 +28,7 @@ public class UserFeignAdapter implements UserServicePort, EmployeeServicePort {
     public boolean existsOwnerById(Long ownerId) {
         try {
             UserFeignResponse user = userFeignClient.getUserById(ownerId);
-            return user != null && "PROPIETARIO".equalsIgnoreCase(user.roleName());
+            return user != null && OWNER_ROLE.getRoleName().equals(user.roleName());
         } catch (FeignException.NotFound exception) {
             return false;
         }
@@ -75,4 +77,5 @@ public class UserFeignAdapter implements UserServicePort, EmployeeServicePort {
             throw new UserServiceUnavailableException();
         }
     }
+
 }

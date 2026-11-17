@@ -3,6 +3,8 @@ package com.pragma.plazoleta.application.port.out;
 
 import com.pragma.plazoleta.domain.model.Employee;
 
+import java.util.Optional;
+
 public interface EmployeeServicePort {
 
     Employee createEmployee(Employee employee, String password);
