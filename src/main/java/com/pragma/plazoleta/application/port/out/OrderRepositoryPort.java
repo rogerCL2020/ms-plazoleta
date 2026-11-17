@@ -4,6 +4,8 @@ import com.pragma.plazoleta.domain.model.Order;
 import com.pragma.plazoleta.domain.model.PageResult;
 import com.pragma.plazoleta.domain.model.enums.OrderStatus;
 
+import java.util.Optional;
+
 public interface OrderRepositoryPort {
 
     Order save(Order order);
@@ -16,4 +18,7 @@ public interface OrderRepositoryPort {
             int page,
             int size
     );
+
+    Optional<Order> findById(Long orderId);
+
 }

@@ -37,4 +37,13 @@ public class OrderEntity {
 
     @Column(name = "id_restaurante", nullable = false)
     private Long restaurantId;
+
+    @Column(name = "pin_seguridad", length = 6)
+    private String securityPin;
+
+    @Column(name = "fecha_inicio_preparacion")
+    private LocalDateTime preparationStartedAt;
+
+    @Column(name = "fecha_entrega")
+    private LocalDateTime deliveredAt;
 }

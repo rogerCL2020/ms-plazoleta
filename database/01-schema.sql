@@ -174,3 +174,9 @@ VALUES
     ('Ensaladas', 'Preparaciones a base de vegetales y otros ingredientes'),
     ('Sopas', 'Preparaciones líquidas calientes o frías'),
     ('Guarniciones', 'Acompañamientos para platos principales');
+
+
+ALTER TABLE pedidos
+    ADD COLUMN pin_seguridad VARCHAR(6) NULL,
+    ADD COLUMN fecha_inicio_preparacion DATETIME(6) NULL,
+    ADD COLUMN fecha_entrega DATETIME(6) NULL;

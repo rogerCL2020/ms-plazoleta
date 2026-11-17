@@ -3,6 +3,7 @@ package com.pragma.plazoleta.infrastructure.input.rest.controller;
 
 import com.pragma.plazoleta.application.dto.request.CreateOrderRequest;
 import com.pragma.plazoleta.application.dto.response.OrderListResponse;
+import com.pragma.plazoleta.application.port.in.AssignOrderUseCase;
 import com.pragma.plazoleta.application.port.in.CreateOrderUseCase;
 import com.pragma.plazoleta.application.port.in.ListOrderUseCase;
 import com.pragma.plazoleta.domain.model.Order;
@@ -27,6 +28,7 @@ public class OrderController {
 
     private final CreateOrderUseCase createOrderUseCase;
     private final ListOrderUseCase listOrderUseCase;
+    private final AssignOrderUseCase assignOrderUseCase;
     private final AuthenticatedUserProvider authenticatedUserProvider;
 
     @PostMapping
@@ -73,5 +75,20 @@ public class OrderController {
         );
 
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/{orderId}/assign")
+    @PreAuthorize("hasRole('EMPLEADO')")
+    public ResponseEntity<Order> assignOrder(
+            @PathVariable Long orderId) {
+
+        AuthenticatedUser user = authenticatedUserProvider.getCurrentUser();
+
+        Order order = assignOrderUseCase.assignOrder(
+                user.userId(),
+                orderId
+        );
+
+        return ResponseEntity.ok(order);
     }
 }
