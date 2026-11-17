@@ -176,13 +176,11 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase , Assi
             throw new IllegalArgumentException("El pedido no es válido");
         }
 
+        // Verificar que el pedido existe
         Order order = orderRepositoryPort.findById(orderId)
                 .orElseThrow(OrderNotFoundException::new);
 
-        if (order.getStatus() != OrderStatus.PENDING || order.getChefId() != null) {
-            throw new OrderNotAvailableException();
-        }
-
+        // Verificar que el empleado pertenece al restaurante
         boolean isAssignedToRestaurant =
                 restaurantEmployeeRepositoryPort.existsByEmployeeIdAndRestaurantId(
                         employeeId,
@@ -193,10 +191,21 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase , Assi
             throw new UnauthorizedRestaurantAccessException();
         }
 
-        order.setChefId(employeeId);
-        order.setStatus(OrderStatus.IN_PREPARATION);
-        order.setPreparationStartedAt(LocalDateTime.now());
+        // Asignación atómica: solo un empleado podrá asignarse el pedido
+        int updatedRows = orderRepositoryPort.assignIfAvailable(
+                orderId,
+                employeeId,
+                OrderStatus.PENDING,
+                OrderStatus.IN_PREPARATION,
+                LocalDateTime.now()
+        );
 
-        return orderRepositoryPort.save(order);
+        if (updatedRows == 0) {
+            throw new OrderNotAvailableException();
+        }
+
+        // Recuperar el pedido actualizado
+        return orderRepositoryPort.findById(orderId)
+                .orElseThrow(OrderNotFoundException::new);
     }
 }
