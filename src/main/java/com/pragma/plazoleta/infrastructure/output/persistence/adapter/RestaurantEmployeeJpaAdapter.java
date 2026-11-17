@@ -40,4 +40,13 @@ public class RestaurantEmployeeJpaAdapter implements RestaurantEmployeeRepositor
     public boolean existsByEmployeeId(Long employeeId) {
         return restaurantEmployeeJpaRepository.existsByEmployeeId(employeeId);
     }
+
+    @Override
+    public boolean existsByEmployeeIdAndRestaurantId(
+            Long employeeId,
+            Long restaurantId
+    ) {
+        return restaurantEmployeeJpaRepository
+                .existsByEmployeeIdAndRestaurantId(employeeId, restaurantId);
+    }
 }

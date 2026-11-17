@@ -4,6 +4,7 @@ package com.pragma.plazoleta.application.port.out;
 import com.pragma.plazoleta.domain.model.Dish;
 import com.pragma.plazoleta.domain.model.PageResult;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface DishRepositoryPort {

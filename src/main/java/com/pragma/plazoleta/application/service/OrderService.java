@@ -1,19 +1,12 @@
 
 package com.pragma.plazoleta.application.service;
 
+import com.pragma.plazoleta.application.dto.response.OrderListResponse;
 import com.pragma.plazoleta.application.port.in.CreateOrderUseCase;
-import com.pragma.plazoleta.application.port.out.DishRepositoryPort;
-import com.pragma.plazoleta.application.port.out.OrderDishRepositoryPort;
-import com.pragma.plazoleta.application.port.out.OrderRepositoryPort;
-import com.pragma.plazoleta.application.port.out.RestaurantRepositoryPort;
-import com.pragma.plazoleta.domain.exception.ActiveOrderAlreadyExistsException;
-import com.pragma.plazoleta.domain.exception.DishNotFoundException;
-import com.pragma.plazoleta.domain.exception.InvalidOrderDishException;
-import com.pragma.plazoleta.domain.exception.RestaurantNotFoundException;
-import com.pragma.plazoleta.domain.model.Dish;
-import com.pragma.plazoleta.domain.model.Order;
-import com.pragma.plazoleta.domain.model.OrderDish;
-import com.pragma.plazoleta.domain.model.Restaurant;
+import com.pragma.plazoleta.application.port.in.ListOrderUseCase;
+import com.pragma.plazoleta.application.port.out.*;
+import com.pragma.plazoleta.domain.exception.*;
+import com.pragma.plazoleta.domain.model.*;
 import com.pragma.plazoleta.domain.model.enums.OrderStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,12 +20,13 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
-public class OrderService implements CreateOrderUseCase {
+public class OrderService implements CreateOrderUseCase, ListOrderUseCase {
 
     private final OrderRepositoryPort orderRepositoryPort;
     private final OrderDishRepositoryPort orderDishRepositoryPort;
     private final RestaurantRepositoryPort restaurantRepositoryPort;
     private final DishRepositoryPort dishRepositoryPort;
+    private final RestaurantEmployeeRepositoryPort restaurantEmployeeRepositoryPort;
 
     @Override
     @Transactional
@@ -102,5 +96,67 @@ public class OrderService implements CreateOrderUseCase {
         orderDishRepositoryPort.saveAll(dishes);
 
         return savedOrder;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResult<OrderListResponse> getOrdersByStatus(
+            Long employeeId,
+            Long restaurantId,
+            OrderStatus status,
+            int page,
+            int size
+    ) {
+
+        if (employeeId == null || employeeId <= 0) {
+            throw new IllegalArgumentException("El empleado no es válido");
+        }
+
+        if (restaurantId == null || restaurantId <= 0) {
+            throw new IllegalArgumentException("El restaurante no es válido");
+        }
+
+        if (status == null) {
+            throw new IllegalArgumentException("El estado del pedido es obligatorio");
+        }
+
+        if (page < 0 || size <= 0) {
+            throw new IllegalArgumentException("Los parámetros de paginación no son válidos");
+        }
+
+        boolean assignedToRestaurant =
+                restaurantEmployeeRepositoryPort
+                        .existsByEmployeeIdAndRestaurantId(employeeId, restaurantId);
+
+        if (!assignedToRestaurant) {
+            throw new UnauthorizedRestaurantAccessException();
+        }
+
+        PageResult<Order> result = orderRepositoryPort.findByRestaurantIdAndStatus(
+                restaurantId,
+                status,
+                page,
+                size
+        );
+
+        List<OrderListResponse> orders = result.getContent()
+                .stream()
+                .map(order -> new OrderListResponse(
+                        order.getId(),
+                        order.getClientId(),
+                        order.getDate(),
+                        order.getStatus(),
+                        order.getChefId(),
+                        null
+                ))
+                .toList();
+
+        return new PageResult<>(
+                orders,
+                result.getPage(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
     }
 }

@@ -12,4 +12,9 @@ public interface RestaurantEmployeeJpaRepository
     Optional<RestaurantEmployeeEntity> findByEmployeeId(Long employeeId);
 
     boolean existsByEmployeeId(Long employeeId);
+
+    boolean existsByEmployeeIdAndRestaurantId(
+            Long employeeId,
+            Long restaurantId
+    );
 }
