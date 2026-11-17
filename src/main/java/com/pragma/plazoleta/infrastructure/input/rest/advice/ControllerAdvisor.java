@@ -35,7 +35,12 @@ public class ControllerAdvisor {
         return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 
-    @ExceptionHandler({RestaurantNotFoundException.class, CategoryNotFoundException.class,DishNotFoundException.class})
+    @ExceptionHandler({
+            RestaurantNotFoundException.class,
+            CategoryNotFoundException.class,
+            DishNotFoundException.class,
+            OrderNotFoundException.class
+    })
     public ResponseEntity<Map<String, String>> handleNotFoundException(
             RuntimeException exception) {
         return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage());
@@ -57,6 +62,12 @@ public class ControllerAdvisor {
     public ResponseEntity<Map<String, String>> handleInvalidOrderDishException(
             InvalidOrderDishException exception) {
         return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
+    @ExceptionHandler(OrderNotAvailableException.class)
+    public ResponseEntity<Map<String, String>> handleOrderNotAvailableException(
+            OrderNotAvailableException exception) {
+        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
     }
 
     @ExceptionHandler(AccessDeniedException.class)

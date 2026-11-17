@@ -21,4 +21,7 @@ public class Order {
     private OrderStatus status;
     private Long chefId;
     private Long restaurantId;
+    private String securityPin;
+    private LocalDateTime preparationStartedAt;
+    private LocalDateTime deliveredAt;
 }

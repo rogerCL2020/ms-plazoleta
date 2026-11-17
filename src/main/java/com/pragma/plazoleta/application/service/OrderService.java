@@ -2,6 +2,7 @@
 package com.pragma.plazoleta.application.service;
 
 import com.pragma.plazoleta.application.dto.response.OrderListResponse;
+import com.pragma.plazoleta.application.port.in.AssignOrderUseCase;
 import com.pragma.plazoleta.application.port.in.CreateOrderUseCase;
 import com.pragma.plazoleta.application.port.in.ListOrderUseCase;
 import com.pragma.plazoleta.application.port.out.*;
@@ -20,7 +21,7 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
-public class OrderService implements CreateOrderUseCase, ListOrderUseCase {
+public class OrderService implements CreateOrderUseCase, ListOrderUseCase , AssignOrderUseCase {
 
     private final OrderRepositoryPort orderRepositoryPort;
     private final OrderDishRepositoryPort orderDishRepositoryPort;
@@ -85,7 +86,10 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase {
                 LocalDateTime.now(),
                 OrderStatus.PENDING,
                 null,
-                restaurantId
+                restaurantId,
+                null,
+                null,
+                null
         );
 
         Order savedOrder = orderRepositoryPort.save(order);
@@ -158,5 +162,41 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase {
                 result.getTotalElements(),
                 result.getTotalPages()
         );
+    }
+
+    @Override
+    @Transactional
+    public Order assignOrder(Long employeeId, Long orderId) {
+
+        if (employeeId == null || employeeId <= 0) {
+            throw new IllegalArgumentException("El empleado no es válido");
+        }
+
+        if (orderId == null || orderId <= 0) {
+            throw new IllegalArgumentException("El pedido no es válido");
+        }
+
+        Order order = orderRepositoryPort.findById(orderId)
+                .orElseThrow(OrderNotFoundException::new);
+
+        if (order.getStatus() != OrderStatus.PENDING || order.getChefId() != null) {
+            throw new OrderNotAvailableException();
+        }
+
+        boolean isAssignedToRestaurant =
+                restaurantEmployeeRepositoryPort.existsByEmployeeIdAndRestaurantId(
+                        employeeId,
+                        order.getRestaurantId()
+                );
+
+        if (!isAssignedToRestaurant) {
+            throw new UnauthorizedRestaurantAccessException();
+        }
+
+        order.setChefId(employeeId);
+        order.setStatus(OrderStatus.IN_PREPARATION);
+        order.setPreparationStartedAt(LocalDateTime.now());
+
+        return orderRepositoryPort.save(order);
     }
 }
