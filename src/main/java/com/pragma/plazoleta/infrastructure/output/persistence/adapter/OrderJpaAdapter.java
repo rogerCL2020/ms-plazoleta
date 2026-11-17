@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -74,6 +75,23 @@ public class OrderJpaAdapter implements OrderRepositoryPort {
     public Optional<Order> findById(Long orderId) {
         return orderJpaRepository.findById(orderId)
                 .map(orderEntityMapper::toDomain);
+    }
+
+    @Override
+    public int assignIfAvailable(
+            Long orderId,
+            Long employeeId,
+            OrderStatus expectedStatus,
+            OrderStatus newStatus,
+            LocalDateTime startedAt
+    ) {
+        return orderJpaRepository.assignIfAvailable(
+                orderId,
+                employeeId,
+                expectedStatus,
+                newStatus,
+                startedAt
+        );
     }
 
 }
