@@ -47,4 +47,11 @@ public interface OrderRepositoryPort {
             LocalDateTime deliveredAt
     );
 
+    int cancelIfPending(
+            Long orderId,
+            Long clientId,
+            OrderStatus expectedStatus,
+            OrderStatus newStatus
+    );
+
 }

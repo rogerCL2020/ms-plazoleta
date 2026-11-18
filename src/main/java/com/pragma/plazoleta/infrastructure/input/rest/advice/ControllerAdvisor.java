@@ -136,6 +136,16 @@ public class ControllerAdvisor {
 
     }
 
+    @ExceptionHandler(UnauthorizedOrderAccessException.class)
+    public ResponseEntity<Map<String, String>> handleUnauthorizedOrderAccess(
+            UnauthorizedOrderAccessException exception
+    ) {
+        return buildResponse(
+                HttpStatus.FORBIDDEN,
+                exception.getMessage()
+        );
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgumentException(
             IllegalArgumentException exception) {

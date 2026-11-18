@@ -8,7 +8,7 @@ import com.pragma.plazoleta.domain.model.enums.OrderStatus;
 
 public interface ListOrderUseCase {
 
-    PageResult<OrderListResponse> getOrdersByStatus(
+    PageResult<Order> getOrdersByStatus(
             Long employeeId,
             Long restaurantId,
             OrderStatus status,
