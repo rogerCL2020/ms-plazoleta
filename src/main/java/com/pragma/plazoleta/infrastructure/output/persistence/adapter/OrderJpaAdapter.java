@@ -94,4 +94,23 @@ public class OrderJpaAdapter implements OrderRepositoryPort {
         );
     }
 
+
+    @Override
+    public int markAsReady(
+            Long orderId,
+            Long employeeId,
+            String securityPin,
+            OrderStatus expectedStatus,
+            OrderStatus newStatus
+    ) {
+        return orderJpaRepository.markAsReady(
+                orderId,
+                employeeId,
+                securityPin,
+                expectedStatus,
+                newStatus
+        );
+    }
+
+
 }

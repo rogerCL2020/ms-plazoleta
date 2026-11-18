@@ -30,4 +30,14 @@ public interface OrderRepositoryPort {
             LocalDateTime startedAt
     );
 
+
+    int markAsReady(
+            Long orderId,
+            Long employeeId,
+            String securityPin,
+            OrderStatus expectedStatus,
+            OrderStatus newStatus
+    );
+
+
 }

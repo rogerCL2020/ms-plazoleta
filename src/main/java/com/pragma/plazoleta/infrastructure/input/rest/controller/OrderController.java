@@ -3,9 +3,11 @@ package com.pragma.plazoleta.infrastructure.input.rest.controller;
 
 import com.pragma.plazoleta.application.dto.request.CreateOrderRequest;
 import com.pragma.plazoleta.application.dto.response.OrderListResponse;
+import com.pragma.plazoleta.application.dto.response.OrderResponse;
 import com.pragma.plazoleta.application.port.in.AssignOrderUseCase;
 import com.pragma.plazoleta.application.port.in.CreateOrderUseCase;
 import com.pragma.plazoleta.application.port.in.ListOrderUseCase;
+import com.pragma.plazoleta.application.port.in.MarkOrderReadyUseCase;
 import com.pragma.plazoleta.domain.model.Order;
 import com.pragma.plazoleta.domain.model.OrderDish;
 import com.pragma.plazoleta.domain.model.PageResult;
@@ -29,11 +31,12 @@ public class OrderController {
     private final CreateOrderUseCase createOrderUseCase;
     private final ListOrderUseCase listOrderUseCase;
     private final AssignOrderUseCase assignOrderUseCase;
+    private final MarkOrderReadyUseCase markOrderReadyUseCase;
     private final AuthenticatedUserProvider authenticatedUserProvider;
 
     @PostMapping
     @PreAuthorize("hasRole('CLIENTE')")
-    public ResponseEntity<Order> create(
+    public ResponseEntity<OrderResponse> create(
             @Valid @RequestBody CreateOrderRequest request) {
 
         AuthenticatedUser user = authenticatedUserProvider.getCurrentUser();
@@ -52,7 +55,8 @@ public class OrderController {
                 dishes
         );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(order);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(toResponse(order));
     }
 
     @GetMapping("/employee")
@@ -61,8 +65,7 @@ public class OrderController {
             @RequestParam Long restaurantId,
             @RequestParam OrderStatus status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
+            @RequestParam(defaultValue = "10") int size) {
 
         AuthenticatedUser user = authenticatedUserProvider.getCurrentUser();
 
@@ -79,7 +82,7 @@ public class OrderController {
 
     @PostMapping("/{orderId}/assign")
     @PreAuthorize("hasRole('EMPLEADO')")
-    public ResponseEntity<Order> assignOrder(
+    public ResponseEntity<OrderResponse> assignOrder(
             @PathVariable Long orderId) {
 
         AuthenticatedUser user = authenticatedUserProvider.getCurrentUser();
@@ -89,6 +92,34 @@ public class OrderController {
                 orderId
         );
 
-        return ResponseEntity.ok(order);
+        return ResponseEntity.ok(toResponse(order));
+    }
+
+    @PostMapping("/{orderId}/ready")
+    @PreAuthorize("hasRole('EMPLEADO')")
+    public ResponseEntity<OrderResponse> markAsReady(
+            @PathVariable Long orderId) {
+
+        AuthenticatedUser user = authenticatedUserProvider.getCurrentUser();
+
+        Order order = markOrderReadyUseCase.markAsReady(
+                user.userId(),
+                orderId
+        );
+
+        return ResponseEntity.ok(toResponse(order));
+    }
+
+    private OrderResponse toResponse(Order order) {
+        return new OrderResponse(
+                order.getId(),
+                order.getClientId(),
+                order.getRestaurantId(),
+                order.getChefId(),
+                order.getStatus(),
+                order.getDate(),
+                order.getPreparationStartedAt(),
+                order.getDeliveredAt()
+        );
     }
 }
