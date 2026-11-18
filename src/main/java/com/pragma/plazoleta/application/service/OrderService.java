@@ -2,14 +2,18 @@
 package com.pragma.plazoleta.application.service;
 
 import com.pragma.plazoleta.application.dto.response.OrderListResponse;
+import com.pragma.plazoleta.application.event.OrderReadyEvent;
 import com.pragma.plazoleta.application.port.in.AssignOrderUseCase;
 import com.pragma.plazoleta.application.port.in.CreateOrderUseCase;
 import com.pragma.plazoleta.application.port.in.ListOrderUseCase;
+import com.pragma.plazoleta.application.port.in.MarkOrderReadyUseCase;
 import com.pragma.plazoleta.application.port.out.*;
+import com.pragma.plazoleta.application.utils.SecurityPinGenerator;
 import com.pragma.plazoleta.domain.exception.*;
 import com.pragma.plazoleta.domain.model.*;
 import com.pragma.plazoleta.domain.model.enums.OrderStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,13 +25,15 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
-public class OrderService implements CreateOrderUseCase, ListOrderUseCase , AssignOrderUseCase {
+public class OrderService implements CreateOrderUseCase, ListOrderUseCase , AssignOrderUseCase, MarkOrderReadyUseCase {
 
     private final OrderRepositoryPort orderRepositoryPort;
     private final OrderDishRepositoryPort orderDishRepositoryPort;
     private final RestaurantRepositoryPort restaurantRepositoryPort;
     private final DishRepositoryPort dishRepositoryPort;
     private final RestaurantEmployeeRepositoryPort restaurantEmployeeRepositoryPort;
+    private final SecurityPinGenerator securityPinGenerator;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -201,11 +207,71 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase , Assi
         );
 
         if (updatedRows == 0) {
-            throw new OrderNotAvailableException();
+            throw new OrderNotAvailableException("El pedido ya no está disponible para asignación");
         }
 
         // Recuperar el pedido actualizado
         return orderRepositoryPort.findById(orderId)
                 .orElseThrow(OrderNotFoundException::new);
     }
+
+
+    @Override
+    @Transactional
+    public Order markAsReady(Long employeeId, Long orderId) {
+
+        if (employeeId == null || employeeId <= 0) {
+            throw new IllegalArgumentException("El empleado no es válido");
+        }
+
+        if (orderId == null || orderId <= 0) {
+            throw new IllegalArgumentException("El pedido no es válido");
+        }
+
+        // Verificar que el pedido existe
+        Order order = orderRepositoryPort.findById(orderId)
+                .orElseThrow(OrderNotFoundException::new);
+
+        // Verificar que el empleado pertenece al restaurante
+        boolean isAssignedToRestaurant =
+                restaurantEmployeeRepositoryPort.existsByEmployeeIdAndRestaurantId(
+                        employeeId,
+                        order.getRestaurantId()
+                );
+
+        if (!isAssignedToRestaurant) {
+            throw new UnauthorizedRestaurantAccessException();
+        }
+
+        // Generar PIN de seguridad
+        String securityPin = securityPinGenerator.generate();
+
+        // Actualización atómica: solo el chef asignado puede marcarlo como listo
+        int updatedRows = orderRepositoryPort.markAsReady(
+                orderId,
+                employeeId,
+                securityPin,
+                OrderStatus.IN_PREPARATION,
+                OrderStatus.READY
+        );
+
+        if (updatedRows == 0) {
+            throw new OrderNotAvailableException("El pedido ya no está disponible para marcar como listo");
+        }
+
+        // Recuperar el pedido actualizado
+        Order updatedOrder = orderRepositoryPort.findById(orderId)
+                .orElseThrow(OrderNotFoundException::new);
+
+        eventPublisher.publishEvent(
+                new OrderReadyEvent(
+                        updatedOrder.getId(),
+                        updatedOrder.getClientId(),
+                        securityPin
+                )
+        );
+
+        return updatedOrder;
+    }
+
 }
