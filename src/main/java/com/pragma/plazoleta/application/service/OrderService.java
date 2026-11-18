@@ -22,7 +22,7 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
-public class OrderService implements CreateOrderUseCase, ListOrderUseCase , AssignOrderUseCase, MarkOrderReadyUseCase, MarkOrderDeliveredUseCase {
+public class OrderService implements CreateOrderUseCase, ListOrderUseCase , AssignOrderUseCase, MarkOrderReadyUseCase, MarkOrderDeliveredUseCase, CancelOrderUseCase {
 
     private final OrderRepositoryPort orderRepositoryPort;
     private final OrderDishRepositoryPort orderDishRepositoryPort;
@@ -107,7 +107,7 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase , Assi
 
     @Override
     @Transactional(readOnly = true)
-    public PageResult<OrderListResponse> getOrdersByStatus(
+    public PageResult<Order> getOrdersByStatus(
             Long employeeId,
             Long restaurantId,
             OrderStatus status,
@@ -139,31 +139,11 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase , Assi
             throw new UnauthorizedRestaurantAccessException();
         }
 
-        PageResult<Order> result = orderRepositoryPort.findByRestaurantIdAndStatus(
+        return orderRepositoryPort.findByRestaurantIdAndStatus(
                 restaurantId,
                 status,
                 page,
                 size
-        );
-
-        List<OrderListResponse> orders = result.getContent()
-                .stream()
-                .map(order -> new OrderListResponse(
-                        order.getId(),
-                        order.getClientId(),
-                        order.getDate(),
-                        order.getStatus(),
-                        order.getChefId(),
-                        null
-                ))
-                .toList();
-
-        return new PageResult<>(
-                orders,
-                result.getPage(),
-                result.getSize(),
-                result.getTotalElements(),
-                result.getTotalPages()
         );
     }
 
@@ -286,7 +266,6 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase , Assi
             throw new IllegalArgumentException("El pedido no es válido");
         }
 
-
         Order order = orderRepositoryPort.findById(orderId)
                 .orElseThrow(OrderNotFoundException::new);
 
@@ -325,6 +304,42 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase , Assi
 
             throw new OrderNotAvailableException(
                     "El pedido no está disponible para entregar"
+            );
+        }
+
+        return orderRepositoryPort.findById(orderId)
+                .orElseThrow(OrderNotFoundException::new);
+    }
+
+    @Override
+    @Transactional
+    public Order cancelOrder(Long clientId, Long orderId) {
+
+        if (clientId == null || clientId <= 0) {
+            throw new IllegalArgumentException("El cliente no es válido");
+        }
+
+        if (orderId == null || orderId <= 0) {
+            throw new IllegalArgumentException("El pedido no es válido");
+        }
+
+        Order order = orderRepositoryPort.findById(orderId)
+                .orElseThrow(OrderNotFoundException::new);
+
+        if (!order.getClientId().equals(clientId)) {
+            throw new UnauthorizedOrderAccessException();
+        }
+
+        int updatedRows = orderRepositoryPort.cancelIfPending(
+                orderId,
+                clientId,
+                OrderStatus.PENDING,
+                OrderStatus.CANCELED
+        );
+
+        if (updatedRows == 0) {
+            throw new OrderNotAvailableException(
+                    "Lo sentimos, tu pedido ya no se encuentra pendiente y no puede cancelarse"
             );
         }
 

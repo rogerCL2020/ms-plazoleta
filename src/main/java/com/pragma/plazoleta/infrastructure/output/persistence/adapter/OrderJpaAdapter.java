@@ -129,5 +129,19 @@ public class OrderJpaAdapter implements OrderRepositoryPort {
         );
     }
 
+    @Override
+    public int cancelIfPending(
+            Long orderId,
+            Long clientId,
+            OrderStatus expectedStatus,
+            OrderStatus newStatus
+    ) {
+        return orderJpaRepository.cancelIfPending(
+                orderId,
+                clientId,
+                expectedStatus,
+                newStatus
+        );
+    }
 
 }

@@ -32,6 +32,7 @@ public class OrderController {
     private final MarkOrderReadyUseCase markOrderReadyUseCase;
     private final AuthenticatedUserProvider authenticatedUserProvider;
     private final MarkOrderDeliveredUseCase markOrderDeliveredUseCase;
+    private final CancelOrderUseCase cancelOrderUseCase;
 
     @PostMapping
     @PreAuthorize("hasRole('CLIENTE')")
@@ -60,7 +61,7 @@ public class OrderController {
 
     @GetMapping("/employee")
     @PreAuthorize("hasRole('EMPLEADO')")
-    public ResponseEntity<PageResult<OrderListResponse>> getOrdersByStatus(
+    public ResponseEntity<PageResult<OrderResponse>> getOrdersByStatus(
             @RequestParam Long restaurantId,
             @RequestParam OrderStatus status,
             @RequestParam(defaultValue = "0") int page,
@@ -68,7 +69,7 @@ public class OrderController {
 
         AuthenticatedUser user = authenticatedUserProvider.getCurrentUser();
 
-        PageResult<OrderListResponse> result = listOrderUseCase.getOrdersByStatus(
+        PageResult<Order> result = listOrderUseCase.getOrdersByStatus(
                 user.userId(),
                 restaurantId,
                 status,
@@ -76,7 +77,20 @@ public class OrderController {
                 size
         );
 
-        return ResponseEntity.ok(result);
+        List<OrderResponse> orders = result.getContent()
+                .stream()
+                .map(this::toResponse)
+                .toList();
+
+        PageResult<OrderResponse> response = new PageResult<>(
+                orders,
+                result.getPage(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{orderId}/assign")
@@ -121,6 +135,21 @@ public class OrderController {
                 user.userId(),
                 orderId,
                 request.securityPin()
+        );
+
+        return ResponseEntity.ok(toResponse(order));
+    }
+
+    @PatchMapping("/{orderId}/cancel")
+    @PreAuthorize("hasRole('CLIENTE')")
+    public ResponseEntity<OrderResponse> cancelOrder(
+            @PathVariable Long orderId
+    ) {
+        AuthenticatedUser user = authenticatedUserProvider.getCurrentUser();
+
+        Order order = cancelOrderUseCase.cancelOrder(
+                user.userId(),
+                orderId
         );
 
         return ResponseEntity.ok(toResponse(order));

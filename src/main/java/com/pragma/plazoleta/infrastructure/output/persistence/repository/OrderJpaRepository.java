@@ -77,4 +77,19 @@ public interface OrderJpaRepository extends JpaRepository<OrderEntity, Long> {
             @Param("newStatus") OrderStatus newStatus,
             @Param("deliveredAt") LocalDateTime deliveredAt
     );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        UPDATE OrderEntity o
+        SET o.status = :newStatus
+        WHERE o.id = :orderId
+          AND o.clientId = :clientId
+          AND o.status = :expectedStatus
+        """)
+    int cancelIfPending(
+            @Param("orderId") Long orderId,
+            @Param("clientId") Long clientId,
+            @Param("expectedStatus") OrderStatus expectedStatus,
+            @Param("newStatus") OrderStatus newStatus
+    );
 }
