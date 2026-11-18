@@ -3,10 +3,7 @@ package com.pragma.plazoleta.application.service;
 
 import com.pragma.plazoleta.application.dto.response.OrderListResponse;
 import com.pragma.plazoleta.application.event.OrderReadyEvent;
-import com.pragma.plazoleta.application.port.in.AssignOrderUseCase;
-import com.pragma.plazoleta.application.port.in.CreateOrderUseCase;
-import com.pragma.plazoleta.application.port.in.ListOrderUseCase;
-import com.pragma.plazoleta.application.port.in.MarkOrderReadyUseCase;
+import com.pragma.plazoleta.application.port.in.*;
 import com.pragma.plazoleta.application.port.out.*;
 import com.pragma.plazoleta.application.utils.SecurityPinGenerator;
 import com.pragma.plazoleta.domain.exception.*;
@@ -25,7 +22,7 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
-public class OrderService implements CreateOrderUseCase, ListOrderUseCase , AssignOrderUseCase, MarkOrderReadyUseCase {
+public class OrderService implements CreateOrderUseCase, ListOrderUseCase , AssignOrderUseCase, MarkOrderReadyUseCase, MarkOrderDeliveredUseCase {
 
     private final OrderRepositoryPort orderRepositoryPort;
     private final OrderDishRepositoryPort orderDishRepositoryPort;
@@ -272,6 +269,67 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase , Assi
         );
 
         return updatedOrder;
+    }
+
+    @Override
+    @Transactional
+    public Order markAsDelivered(
+            Long employeeId,
+            Long orderId,
+            String securityPin
+    ) {
+        if (employeeId == null || employeeId <= 0) {
+            throw new IllegalArgumentException("El empleado no es válido");
+        }
+
+        if (orderId == null || orderId <= 0) {
+            throw new IllegalArgumentException("El pedido no es válido");
+        }
+
+
+        Order order = orderRepositoryPort.findById(orderId)
+                .orElseThrow(OrderNotFoundException::new);
+
+        boolean isAssignedToRestaurant =
+                restaurantEmployeeRepositoryPort.existsByEmployeeIdAndRestaurantId(
+                        employeeId,
+                        order.getRestaurantId()
+                );
+
+        if (!isAssignedToRestaurant) {
+            throw new UnauthorizedRestaurantAccessException();
+        }
+
+        int updatedRows = orderRepositoryPort.markAsDelivered(
+                orderId,
+                securityPin,
+                OrderStatus.READY,
+                OrderStatus.DELIVERED,
+                LocalDateTime.now()
+        );
+
+        if (updatedRows == 0) {
+
+            Order currentOrder = orderRepositoryPort.findById(orderId)
+                    .orElseThrow(OrderNotFoundException::new);
+
+            if (currentOrder.getStatus() == OrderStatus.DELIVERED) {
+                throw new OrderNotAvailableException(
+                        "El pedido ya fue entregado"
+                );
+            }
+
+            if (!securityPin.equals(currentOrder.getSecurityPin())) {
+                throw new InvalidSecurityPinException();
+            }
+
+            throw new OrderNotAvailableException(
+                    "El pedido no está disponible para entregar"
+            );
+        }
+
+        return orderRepositoryPort.findById(orderId)
+                .orElseThrow(OrderNotFoundException::new);
     }
 
 }

@@ -2,12 +2,10 @@
 package com.pragma.plazoleta.infrastructure.input.rest.controller;
 
 import com.pragma.plazoleta.application.dto.request.CreateOrderRequest;
+import com.pragma.plazoleta.application.dto.request.DeliverOrderRequest;
 import com.pragma.plazoleta.application.dto.response.OrderListResponse;
 import com.pragma.plazoleta.application.dto.response.OrderResponse;
-import com.pragma.plazoleta.application.port.in.AssignOrderUseCase;
-import com.pragma.plazoleta.application.port.in.CreateOrderUseCase;
-import com.pragma.plazoleta.application.port.in.ListOrderUseCase;
-import com.pragma.plazoleta.application.port.in.MarkOrderReadyUseCase;
+import com.pragma.plazoleta.application.port.in.*;
 import com.pragma.plazoleta.domain.model.Order;
 import com.pragma.plazoleta.domain.model.OrderDish;
 import com.pragma.plazoleta.domain.model.PageResult;
@@ -33,6 +31,7 @@ public class OrderController {
     private final AssignOrderUseCase assignOrderUseCase;
     private final MarkOrderReadyUseCase markOrderReadyUseCase;
     private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final MarkOrderDeliveredUseCase markOrderDeliveredUseCase;
 
     @PostMapping
     @PreAuthorize("hasRole('CLIENTE')")
@@ -105,6 +104,23 @@ public class OrderController {
         Order order = markOrderReadyUseCase.markAsReady(
                 user.userId(),
                 orderId
+        );
+
+        return ResponseEntity.ok(toResponse(order));
+    }
+
+    @PostMapping("/{orderId}/deliver")
+    @PreAuthorize("hasRole('EMPLEADO')")
+    public ResponseEntity<OrderResponse> markAsDelivered(
+            @PathVariable Long orderId,
+            @Valid @RequestBody DeliverOrderRequest request
+    ) {
+        AuthenticatedUser user = authenticatedUserProvider.getCurrentUser();
+
+        Order order = markOrderDeliveredUseCase.markAsDelivered(
+                user.userId(),
+                orderId,
+                request.securityPin()
         );
 
         return ResponseEntity.ok(toResponse(order));

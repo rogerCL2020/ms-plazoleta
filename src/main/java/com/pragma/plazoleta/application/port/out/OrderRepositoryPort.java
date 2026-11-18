@@ -39,5 +39,12 @@ public interface OrderRepositoryPort {
             OrderStatus newStatus
     );
 
+    int markAsDelivered(
+            Long orderId,
+            String securityPin,
+            OrderStatus expectedStatus,
+            OrderStatus newStatus,
+            LocalDateTime deliveredAt
+    );
 
 }
