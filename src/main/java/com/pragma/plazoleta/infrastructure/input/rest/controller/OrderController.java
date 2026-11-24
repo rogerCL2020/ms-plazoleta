@@ -5,6 +5,7 @@ import com.pragma.plazoleta.application.dto.request.CreateOrderRequest;
 import com.pragma.plazoleta.application.dto.request.DeliverOrderRequest;
 import com.pragma.plazoleta.application.dto.response.OrderListResponse;
 import com.pragma.plazoleta.application.dto.response.OrderResponse;
+import com.pragma.plazoleta.application.dto.result.OrderTraceabilityResult;
 import com.pragma.plazoleta.application.port.in.*;
 import com.pragma.plazoleta.domain.model.Order;
 import com.pragma.plazoleta.domain.model.OrderDish;
@@ -31,6 +32,7 @@ public class OrderController {
     private final AssignOrderUseCase assignOrderUseCase;
     private final MarkOrderReadyUseCase markOrderReadyUseCase;
     private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final OrderTraceabilityUseCase orderTraceabilityUseCase;
     private final MarkOrderDeliveredUseCase markOrderDeliveredUseCase;
     private final CancelOrderUseCase cancelOrderUseCase;
 
@@ -153,6 +155,23 @@ public class OrderController {
         );
 
         return ResponseEntity.ok(toResponse(order));
+    }
+
+    @GetMapping("/{orderId}/traceability")
+    @PreAuthorize("hasRole('CLIENTE')")
+    public ResponseEntity<List<OrderTraceabilityResult>> getOrderTraceability(
+            @PathVariable Long orderId
+    ) {
+
+        AuthenticatedUser user = authenticatedUserProvider.getCurrentUser();
+
+        List<OrderTraceabilityResult> traceability =
+                orderTraceabilityUseCase.getByOrderId(
+                        orderId,
+                        user.userId()
+                );
+
+        return ResponseEntity.ok(traceability);
     }
 
     private OrderResponse toResponse(Order order) {
