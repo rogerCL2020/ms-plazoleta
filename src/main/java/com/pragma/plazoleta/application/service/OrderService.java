@@ -3,6 +3,7 @@ package com.pragma.plazoleta.application.service;
 
 import com.pragma.plazoleta.application.dto.response.OrderListResponse;
 import com.pragma.plazoleta.application.event.OrderReadyEvent;
+import com.pragma.plazoleta.application.event.OrderStatusChangedEvent;
 import com.pragma.plazoleta.application.port.in.*;
 import com.pragma.plazoleta.application.port.out.*;
 import com.pragma.plazoleta.application.utils.SecurityPinGenerator;
@@ -83,10 +84,12 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase , Assi
         }
 
         // Crear pedido
+        LocalDateTime createdAt = LocalDateTime.now();
+
         Order order = new Order(
                 null,
                 clientId,
-                LocalDateTime.now(),
+                createdAt,
                 OrderStatus.PENDING,
                 null,
                 restaurantId,
@@ -101,6 +104,18 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase , Assi
         dishes.forEach(dish -> dish.setOrderId(savedOrder.getId()));
 
         orderDishRepositoryPort.saveAll(dishes);
+
+        // Publicar evento de trazabilidad
+        eventPublisher.publishEvent(
+                new OrderStatusChangedEvent(
+                        savedOrder.getId(),
+                        savedOrder.getClientId(),
+                        createdAt,
+                        null,
+                        OrderStatus.PENDING,
+                        null
+                )
+        );
 
         return savedOrder;
     }
@@ -174,6 +189,7 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase , Assi
             throw new UnauthorizedRestaurantAccessException();
         }
 
+        LocalDateTime changedAt = LocalDateTime.now();
         // Asignación atómica: solo un empleado podrá asignarse el pedido
         int updatedRows = orderRepositoryPort.assignIfAvailable(
                 orderId,
@@ -188,8 +204,21 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase , Assi
         }
 
         // Recuperar el pedido actualizado
-        return orderRepositoryPort.findById(orderId)
+        Order updatedOrder = orderRepositoryPort.findById(orderId)
                 .orElseThrow(OrderNotFoundException::new);
+
+        eventPublisher.publishEvent(
+                new OrderStatusChangedEvent(
+                        updatedOrder.getId(),
+                        updatedOrder.getClientId(),
+                        changedAt,
+                        OrderStatus.PENDING,
+                        OrderStatus.IN_PREPARATION,
+                        employeeId
+                )
+        );
+
+        return updatedOrder;
     }
 
 
@@ -236,15 +265,27 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase , Assi
             throw new OrderNotAvailableException("El pedido ya no está disponible para marcar como listo");
         }
 
-        // Recuperar el pedido actualizado
         Order updatedOrder = orderRepositoryPort.findById(orderId)
                 .orElseThrow(OrderNotFoundException::new);
 
+// Evento existente de notificación
         eventPublisher.publishEvent(
                 new OrderReadyEvent(
                         updatedOrder.getId(),
                         updatedOrder.getClientId(),
                         securityPin
+                )
+        );
+
+// Nuevo evento de trazabilidad
+        eventPublisher.publishEvent(
+                new OrderStatusChangedEvent(
+                        updatedOrder.getId(),
+                        updatedOrder.getClientId(),
+                        LocalDateTime.now(),
+                        OrderStatus.IN_PREPARATION,
+                        OrderStatus.READY,
+                        employeeId
                 )
         );
 
@@ -279,16 +320,17 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase , Assi
             throw new UnauthorizedRestaurantAccessException();
         }
 
+        LocalDateTime changedAt = LocalDateTime.now();
+
         int updatedRows = orderRepositoryPort.markAsDelivered(
                 orderId,
                 securityPin,
                 OrderStatus.READY,
                 OrderStatus.DELIVERED,
-                LocalDateTime.now()
+                changedAt
         );
 
         if (updatedRows == 0) {
-
             Order currentOrder = orderRepositoryPort.findById(orderId)
                     .orElseThrow(OrderNotFoundException::new);
 
@@ -307,8 +349,21 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase , Assi
             );
         }
 
-        return orderRepositoryPort.findById(orderId)
+        Order updatedOrder = orderRepositoryPort.findById(orderId)
                 .orElseThrow(OrderNotFoundException::new);
+
+        eventPublisher.publishEvent(
+                new OrderStatusChangedEvent(
+                        updatedOrder.getId(),
+                        updatedOrder.getClientId(),
+                        changedAt,
+                        OrderStatus.READY,
+                        OrderStatus.DELIVERED,
+                        employeeId
+                )
+        );
+
+        return updatedOrder;
     }
 
     @Override
@@ -330,6 +385,8 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase , Assi
             throw new UnauthorizedOrderAccessException();
         }
 
+        LocalDateTime changedAt = LocalDateTime.now();
+
         int updatedRows = orderRepositoryPort.cancelIfPending(
                 orderId,
                 clientId,
@@ -339,12 +396,24 @@ public class OrderService implements CreateOrderUseCase, ListOrderUseCase , Assi
 
         if (updatedRows == 0) {
             throw new OrderNotAvailableException(
-                    "Lo sentimos, tu pedido ya no se encuentra pendiente y no puede cancelarse"
+                    "El pedido no está disponible para cancelar"
             );
         }
 
-        return orderRepositoryPort.findById(orderId)
+        Order updatedOrder = orderRepositoryPort.findById(orderId)
                 .orElseThrow(OrderNotFoundException::new);
-    }
 
+        eventPublisher.publishEvent(
+                new OrderStatusChangedEvent(
+                        updatedOrder.getId(),
+                        updatedOrder.getClientId(),
+                        changedAt,
+                        OrderStatus.PENDING,
+                        OrderStatus.CANCELED,
+                        null
+                )
+        );
+
+        return updatedOrder;
+    }
 }

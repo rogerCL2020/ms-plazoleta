@@ -23,7 +23,12 @@ app:
   security:
     jwt:
       secret: ${JWT_SECRET:bfSPR28aJsO+O+CMmiGb7FFpBeYwnPuMbqHZVxqw7X0=}
+    service-jwt:
+      secret: ${SERVICE_JWT_SECRET:bfSPR28aJsO+O+CMmiGb7FFpBeYwnPuMbqHZVxqw7X0=}
 
 microservices:
   usuarios:
     url: http://localhost:8081
+
+  traceability:
+    url: ${TRACEABILITY_SERVICE_URL:http://localhost:8083}
